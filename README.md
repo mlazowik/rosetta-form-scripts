@@ -6,7 +6,10 @@ The scripts are experimental and may occassionally crash. Please report all issu
 
 # Installation
 
-TODO
+To install or upgrade run:
+```
+pip3 install --upgrade git+https://github.com/qedsoftware/rosetta-form-scripts#egg=rosetta-form-scripts
+```
 
 # Available scripts
 

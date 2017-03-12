@@ -2,8 +2,8 @@
 
 from distutils.core import setup
 
-setup(name='qed_form_conversion_scripts',
-    version='1.0',
+setup(name='rosetta_form_scripts',
+    version='0.1',
     description='Various form conversion hacks',
     author='QED Inc.',
     author_email='info@qed.ai',
