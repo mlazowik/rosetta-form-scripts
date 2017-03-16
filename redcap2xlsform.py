@@ -274,6 +274,39 @@ class CalculationsConverter:
         return ''
 
 
+class DeafultsConverter:
+    """Converts default values for questions from redcap file to XLSForm format."""
+    defaultsRegex = r"(?i)@default\s*=\s*[\'\"]?([^\'\"]*)[\'\"]?"
+
+    def __init__(self, annotation):
+        self.annotation = annotation
+
+    def convertToXLS(self):
+        m = re.search(self.defaultsRegex, self.annotation)
+        if m and (len(m.groups()) > 0):
+            defaultValue = m.group(1)
+        else:
+            defaultValue = ""
+
+        return defaultValue
+
+
+class ReadOnlyConverter:
+    """Converts hidden values from redcap file to read only in XLSForm format."""
+    readOnlyRegex = r"(?i)@hidden"
+
+    def __init__(self, annotation):
+        self.annotation = annotation
+
+    def convertToXLS(self):
+        if re.search(self.readOnlyRegex, self.annotation):
+            readOnly = "yes"
+        else:
+            readOnly = ""
+
+        return readOnly
+
+
 class XLSChoice:
     """Holds information about available choices to question in XLSForm format."""
     listName = ''
@@ -333,7 +366,7 @@ class Converter:
     """Converts content of redcap file to XLSForm."""
     defaultChoices = [XLSChoice('yes_no', 'yes', 'Yes'),
                       XLSChoice('yes_no', 'no', 'No')]
-    defaultHeaders = ['calculation']
+    defaultHeaders = ['calculation', 'default', 'read_only']
 
     def __init__(self, fileContent, mode):
         if mode == 'zip_xls':
@@ -457,6 +490,7 @@ class RowConverter:
         self.relevant = self._getRedcapVal('Branching Logic (Show field only if...)')
         self.required = self._getRedcapVal('Required Field?')
         self.choicesOrCalculations = self._getRedcapVal('Choices, Calculations, OR Slider Labels')
+        self.annotation = self._getRedcapVal('Field Annotation')
 
     def convertToXLS(self):
         """Converts row to XLSForm format and returns it."""
@@ -482,6 +516,8 @@ class RowConverter:
 
         self._convertChoices()
         self._convertCalculations()
+        self._convertDefaults()
+        self._convertReadOnly()
 
         return self.convertedRow, self.convertedChoices, self.listIncrement
 
@@ -521,6 +557,16 @@ class RowConverter:
         redcapCalculations = CalculationsConverter(self.convertedType, self.choicesOrCalculations)
         convertedCalculations = redcapCalculations.convertToXLS()
         self._setXLSVal('calculation', convertedCalculations)
+
+    def _convertDefaults(self):
+        redcapDefaults = DeafultsConverter(self.annotation)
+        convertedDeafults = redcapDefaults.convertToXLS()
+        self._setXLSVal('default', convertedDeafults)
+
+    def _convertReadOnly(self):
+        redcapReadOnly = ReadOnlyConverter(self.annotation)
+        convertedReadOnly = redcapReadOnly.convertToXLS()
+        self._setXLSVal('read_only', convertedReadOnly)
 
     def _convertChoices(self):
         redcapChoices = ChoicesConverter(self.convertedType, self.choicesOrCalculations)
