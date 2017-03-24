@@ -447,6 +447,7 @@ class Converter:
         convertedQuestions = []
         convertedChoices = []
         listNumber = 0
+        choiceSets = set()
         convertedChoices += self.defaultChoices
 
         for row in redcapQuestions:
@@ -454,8 +455,12 @@ class Converter:
                                      convertedHeaders, listNumber)
             questions, choices, listIncrement = redcapRow.convertToXLS()
             convertedQuestions.append(questions)
-            convertedChoices += choices
-            listNumber += listIncrement
+            if(len(choices)>0):
+                namesFromSet = tuple(sorted([c.name for c in choices]))
+                if namesFromSet not in choiceSets:
+                    choiceSets.add(namesFromSet)
+                    convertedChoices += choices
+                    listNumber += listIncrement
 
         return convertedQuestions, convertedChoices
 
