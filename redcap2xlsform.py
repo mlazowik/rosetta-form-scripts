@@ -399,25 +399,26 @@ class Converter:
         currentForm = []
         currentVariables = {}
         for i, row in enumerate(fileContent.questions):
-            formName = row[formNameIndex]
-            if formName != currentName:
-                forms.append(RedcapContent(currentName, fileContent.headers, currentForm))
-                currentName = formName
-                currentForm = []
-                currentVariables = {}
+            if row!=[]:
+                formName = row[formNameIndex]
+                if formName != currentName:
+                    forms.append(RedcapContent(currentName, fileContent.headers, currentForm))
+                    currentName = formName
+                    currentForm = []
+                    currentVariables = {}
 
-            variables = self._extractVariables(row[branchIndex])
-            if row[typeIndex] == 'calc':
-                variables += self._extractVariables(row[calcIndex])
+                variables = self._extractVariables(row[branchIndex])
+                if row[typeIndex] == 'calc':
+                    variables += self._extractVariables(row[calcIndex])
 
-            for variable in variables:
-                if variable not in currentVariables:
-                    raise Exception("Cannot divide into multiple forms, " +
-                                    "condition/calculation refers to other " +
-                                    "forms in line {}:".format(i),
-                                    row)
-            currentVariables[row[nameIndex]] = True
-            currentForm.append(row)
+                for variable in variables:
+                    if variable not in currentVariables:
+                        raise Exception("Cannot divide into multiple forms, " +
+                                        "condition/calculation refers to other " +
+                                        "forms in line {}:".format(i),
+                                        row)
+                currentVariables[row[nameIndex]] = True
+                currentForm.append(row)
 
         forms.append(RedcapContent(currentName, fileContent.headers, currentForm))
 
