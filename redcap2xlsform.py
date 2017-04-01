@@ -598,14 +598,15 @@ class RowConverter:
 
 class XLSWriter:
     """Writes content in XLSForm format to a file."""
-    def __init__(self, filename):
+    def __init__(self, filename, mode):
         self.path = os.path.dirname(filename)
         self.path += '/'
         self.filename = filename
+        self.mode = mode
 
     def write(self, content):
         """Writes content in XLSForm format to a file."""
-        if len(content) == 1:
+        if self.mode == "single_xls":
             self._writeFile(self.filename, content[0])
         else:
             with zipfile.ZipFile(self.filename, 'w') as file:
@@ -694,7 +695,7 @@ if __name__ == "__main__":
 
     try:
         convertedContent = Converter(fileContent, mode).convert()
-        XLSWriter(savefile).write(convertedContent)
+        XLSWriter(savefile, mode).write(convertedContent)
     except Exception as e:
         msg, line = e.args
         print(msg)
