@@ -450,8 +450,15 @@ class Converter:
         listNumber = 0
         choiceSets = set()
         convertedChoices += self.defaultChoices
+        prevGroups = 0
 
         for row in redcapQuestions:
+            if row[redcapHeaders.index('Section Header')]:
+                if prevGroups > 0:
+                    convertedQuestions.append(self._endGroup(convertedHeaders))
+                convertedQuestions.append(self._beginGroup(convertedHeaders, prevGroups, row[redcapHeaders.index('Section Header')]))
+                prevGroups += 1
+
             redcapRow = RowConverter(row, redcapHeaders,
                                      convertedHeaders, listNumber)
             questions, choices, listIncrement = redcapRow.convertToXLS()
@@ -463,7 +470,22 @@ class Converter:
                     convertedChoices += choices
                     listNumber += listIncrement
 
+        if prevGroups > 0:
+            convertedQuestions.append(self._endGroup(convertedHeaders))
+
         return convertedQuestions, convertedChoices
+
+    def _beginGroup(self, headers, prevGroups, label):
+        groupBegin = [''] * len(headers)
+        groupBegin[headers.index('name')] = 'group_' + str(prevGroups + 1)
+        groupBegin[headers.index('label')] = label
+        groupBegin[headers.index('type')] = 'begin group'
+        return groupBegin
+
+    def _endGroup(self, headers):
+        groupEnd = [''] * len(headers)
+        groupEnd[headers.index('type')] = 'end group'
+        return groupEnd
 
 
 class RowConverter:
