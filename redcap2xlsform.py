@@ -196,7 +196,7 @@ class RequiredConverter:
         if self._isRequired():
             return 'yes'
         else:
-            return ''
+            return 'no'
 
     def _isRequired(self):
         return self.required == 'y'
