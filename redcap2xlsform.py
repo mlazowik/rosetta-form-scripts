@@ -619,7 +619,10 @@ class RowConverter:
 
     def _getRedcapVal(self, header):
         index = self._getRedcapIndex(header)
-        return self.row[index]
+        if index < len(self.row):
+            return self.row[index]
+        else:
+            return ''
 
     def _setXLSVal(self, header, value):
         index = self._getXLSIndex(header)
