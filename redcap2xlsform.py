@@ -448,11 +448,12 @@ class Converter:
         convertedQuestions = []
         convertedChoices = []
         listNumber = 0
-        choiceSets = set()
+        listNumbermax=0
+        choiceSets = []
         convertedChoices += self.defaultChoices
         prevGroups = 0
 
-        for row in redcapQuestions:
+        for i, row in enumerate(redcapQuestions):
             if row[redcapHeaders.index('Section Header')]:
                 if prevGroups > 0:
                     convertedQuestions.append(self._endGroup(convertedHeaders))
@@ -462,14 +463,27 @@ class Converter:
             redcapRow = RowConverter(row, redcapHeaders,
                                      convertedHeaders, listNumber)
             questions, choices, listIncrement = redcapRow.convertToXLS()
-            convertedQuestions.append(questions)
-            if(len(choices)>0):
-                namesFromSet = tuple(sorted([c.name for c in choices]))
-                if namesFromSet not in choiceSets:
-                    choiceSets.add(namesFromSet)
-                    convertedChoices += choices
-                    listNumber += listIncrement
 
+            if len(choices)>0:
+                namesFromSet = sorted([c.name for c in choices])
+                if namesFromSet not in choiceSets:
+                    listNumber = listNumbermax
+                    listNumbermax += listIncrement
+                else:
+                    listNumber = choiceSets.index(namesFromSet)
+
+
+            redcapRow = RowConverter(row, redcapHeaders,
+                                    convertedHeaders, listNumber)
+            questions, choices, listIncrement = redcapRow.convertToXLS()
+            convertedQuestions.append(questions)
+
+            if len(choices)>0:
+                if namesFromSet not in choiceSets:
+                    choiceSets.append(namesFromSet)
+                    convertedChoices += choices
+
+            
         if prevGroups > 0:
             convertedQuestions.append(self._endGroup(convertedHeaders))
 
