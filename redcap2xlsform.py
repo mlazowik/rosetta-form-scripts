@@ -307,6 +307,16 @@ class ReadOnlyConverter:
         return readOnly
 
 
+class HintsConverter:
+    """Converts hints from redcap file to XLSForm format."""
+    def __init__(self, hint):
+        self.hint = hint
+
+    def convertToXLS(self):
+        """Converts hint to XLSForm format and returns it."""
+        return self.hint
+
+
 class XLSChoice:
     """Holds information about available choices to question in XLSForm format."""
     listName = ''
@@ -352,7 +362,8 @@ class HeaderConverter:
                                'Field Label': 'label',
                                'Text Validation Min': 'constraint',
                                'Branching Logic (Show field only if...)': 'relevant',
-                               'Required Field?': 'required'}
+                               'Required Field?': 'required',
+                               'Field Note': 'hint'}
 
     def __init__(self, header):
         self.header = header
@@ -533,6 +544,7 @@ class RowConverter:
         self.required = self._getRedcapVal('Required Field?')
         self.choicesOrCalculations = self._getRedcapVal('Choices, Calculations, OR Slider Labels')
         self.annotation = self._getRedcapVal('Field Annotation')
+        self.hint = self._getRedcapVal('Field Note')
 
     def convertToXLS(self):
         """Converts row to XLSForm format and returns it."""
@@ -555,6 +567,9 @@ class RowConverter:
 
         if self._hasXLSHeader('required'):
             self._convertRequired()
+
+        if self._hasXLSHeader('hint'):
+            self._convertHint()
 
         self._convertChoices()
         self._convertCalculations()
@@ -609,6 +624,11 @@ class RowConverter:
         redcapReadOnly = ReadOnlyConverter(self.annotation)
         convertedReadOnly = redcapReadOnly.convertToXLS()
         self._setXLSVal('read_only', convertedReadOnly)
+
+    def _convertHint(self):
+        redcapHint = HintsConverter(self.hint)
+        convertedHint = redcapHint.convertToXLS()
+        self._setXLSVal('hint', convertedHint)
 
     def _convertChoices(self):
         redcapChoices = ChoicesConverter(self.convertedType, self.choicesOrCalculations)
