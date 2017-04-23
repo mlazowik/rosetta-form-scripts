@@ -167,10 +167,10 @@ class ConstraintConverter:
 
 class RelevantConverter:
     """Holds expression from redcap file whether or not to show question."""
-    singleVariableRegex = r"\[(\w+)\]\s*([<>=]{,2})\s*[\'\"]?(\w+)[\'\"]?"
-    singleVariableSubstituteRegex = r"${\1} \2 '\3'"
-    arrayRegex = r"\[(\w+)\((\w+)\)\]\s*([<>=]{,2})\s*[\'\"]?(\w+)[\'\"]?"
-    arraySubstituteRegex = r"selected('\1','\2') \3 '\4'"
+    singleVariableRegex = r"\[(\w+)\]\s*([!<>=]{,2})\s*([\'\"]?)(\w+)[\'\"]?"
+    singleVariableSubstituteRegex = r"${\1} \2 \3\4\3"
+    arrayRegex = r"\[(\w+)\((\w+)\)\]\s*([!<>=]{,2})\s*([\'\"]?)(\w+)[\'\"]?"
+    arraySubstituteRegex = r"selected('\1','\2') \3 \4\5\4"
 
     def __init__(self, expression):
         self.expression = expression
@@ -412,7 +412,7 @@ class Converter:
         for i, row in enumerate(fileContent.questions):
             if row!=[]:
                 formName = row[formNameIndex]
-                if formName != currentName:
+                if formName != currentName and formName != '':
                     forms.append(RedcapContent(currentName, fileContent.headers, currentForm))
                     currentName = formName
                     currentForm = []
@@ -487,7 +487,9 @@ class Converter:
             redcapRow = RowConverter(row, redcapHeaders,
                                     convertedHeaders, listNumber)
             questions, choices, listIncrement = redcapRow.convertToXLS()
-            convertedQuestions.append(questions)
+
+            if questions:
+                convertedQuestions.append(questions)
 
             if len(choices)>0:
                 if namesFromSet not in choiceSets:
@@ -550,31 +552,36 @@ class RowConverter:
         """Converts row to XLSForm format and returns it."""
         self.convertedRow = [''] * len(self.convertedHeaders)
 
-        if self._hasXLSHeader('name'):
-            self._convertName()
+        if not self._isEmpty():
+            if self._hasXLSHeader('name'):
+                self._convertName()
 
-        if self._hasXLSHeader('type'):
-            self._convertType()
+            if self._hasXLSHeader('type'):
+                self._convertType()
 
-        if self._hasXLSHeader('label'):
-            self._convertLabel()
+            if self._hasXLSHeader('label'):
+                self._convertLabel()
 
-        if self._hasXLSHeader('constraint'):
-            self._convertConstraint()
+            if self._hasXLSHeader('constraint'):
+                self._convertConstraint()
 
-        if self._hasXLSHeader('relevant'):
-            self._convertRelevant()
+            if self._hasXLSHeader('relevant'):
+                self._convertRelevant()
 
-        if self._hasXLSHeader('required'):
-            self._convertRequired()
+            if self._hasXLSHeader('required'):
+                self._convertRequired()
 
-        if self._hasXLSHeader('hint'):
-            self._convertHint()
+            if self._hasXLSHeader('hint'):
+                self._convertHint()
 
-        self._convertChoices()
-        self._convertCalculations()
-        self._convertDefaults()
-        self._convertReadOnly()
+            self._convertChoices()
+            self._convertCalculations()
+            self._convertDefaults()
+            self._convertReadOnly()
+        else:
+            self.convertedRow = ''
+            self.convertedChoices = []
+            self.listIncrement = 0
 
         return self.convertedRow, self.convertedChoices, self.listIncrement
 
@@ -653,6 +660,11 @@ class RowConverter:
 
     def _getXLSIndex(self, type_):
         return self.XLSHeaderIndex.get(type_)
+
+    def _isEmpty(self):
+        redcapName = NameConverter(self.name)
+        convertedName = redcapName.convertToXLS()
+        return not convertedName
 
 
 class XLSWriter:
