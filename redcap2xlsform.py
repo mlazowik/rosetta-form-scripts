@@ -169,8 +169,8 @@ class RelevantConverter:
     """Holds expression from redcap file whether or not to show question."""
     singleVariableRegex = r"\[(\w+)\]\s*([!<>=]{,2})\s*([\'\"]?)(\w*)[\'\"]?"
     singleVariableSubstituteRegex = r"${\1} \2 \3\4\3"
-    arrayRegex = r"\[(\w+)\((\w+)\)\]\s*([!<>=]{,2})\s*([\'\"]?)(\w*)[\'\"]?"
-    arraySubstituteRegex = r"selected('\1','\2') \3 \4\5\4"
+    arrayRegex = r"\[(\w+)\((\w+)\)\]\s*([!=]{,2})\s*[\'\"]?(\w*)[\'\"]?"
+    arraySubstitute = "selected('{}','{}')"
 
     def __init__(self, expression):
         self.expression = expression
@@ -180,9 +180,9 @@ class RelevantConverter:
         singleVariablesConverted = re.sub(self.singleVariableRegex,
                                           self.singleVariableSubstituteRegex,
                                           self.expression)
-        arraysConverted = re.sub(self.arrayRegex,
-                                 self.arraySubstituteRegex,
-                                 singleVariablesConverted)
+
+        arraysConverted = self.convertArrays(singleVariablesConverted)
+
         differentConverted = re.sub(r"<>",
                                     r"!=",
                                     arraysConverted)
@@ -194,6 +194,23 @@ class RelevantConverter:
                               orConverted)
         allConverted = andConverted
         return allConverted
+
+    def convertArrays(self, text):
+        converted = text
+        while re.search(self.arrayRegex, converted):
+            match = re.search(self.arrayRegex, converted)
+            operator = match.group(3)
+            value = match.group(4)[-1]  #sometimes values are not just 1 or 0 so we will check only last character
+            array = match.group(1)
+            item = match.group(2)
+            substitute = self.arraySubstitute.format(array, item)
+            if (operator == '=' and value == '0') or (operator == '!=' and value == '1'):
+                substitute = 'not(' + substitute + ')'
+            converted = re.sub(self.arrayRegex,
+                                     substitute,
+                                     converted,
+                                     count = 1)
+        return converted
 
 
 class RequiredConverter:
