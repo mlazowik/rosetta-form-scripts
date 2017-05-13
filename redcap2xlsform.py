@@ -420,7 +420,7 @@ class Converter:
         currentForm = []
         currentVariables = {}
         for i, row in enumerate(fileContent.questions):
-            if row!=[]:
+            if row != []:
                 formName = row[formNameIndex]
                 if formName != currentName and formName != '':
                     forms.append(RedcapContent(currentName, fileContent.headers, currentForm))
@@ -469,7 +469,7 @@ class Converter:
         convertedQuestions = []
         convertedChoices = []
         listNumber = 0
-        listNumbermax=0
+        listNumbermax = 0
         choiceSets = []
         convertedChoices += self.defaultChoices
         prevGroups = 0
@@ -477,7 +477,7 @@ class Converter:
         for i, row in enumerate(redcapQuestions):
             if not row:
                 continue
-                
+
             if row[redcapHeaders.index('Section Header')]:
                 if prevGroups > 0:
                     convertedQuestions.append(self._endGroup(convertedHeaders))
@@ -488,7 +488,7 @@ class Converter:
                                      convertedHeaders, listNumber)
             questions, choices, listIncrement = redcapRow.convertToXLS()
 
-            if len(choices)>0:
+            if len(choices) > 0:
                 namesFromSet = sorted([c.name for c in choices])
                 if namesFromSet not in choiceSets:
                     listNumber = listNumbermax
@@ -496,20 +496,18 @@ class Converter:
                 else:
                     listNumber = choiceSets.index(namesFromSet)
 
-
             redcapRow = RowConverter(row, redcapHeaders,
-                                    convertedHeaders, listNumber)
+                                     convertedHeaders, listNumber)
             questions, choices, listIncrement = redcapRow.convertToXLS()
 
             if questions:
                 convertedQuestions.append(questions)
 
-            if len(choices)>0:
+            if len(choices) > 0:
                 if namesFromSet not in choiceSets:
                     choiceSets.append(namesFromSet)
                     convertedChoices += choices
 
-            
         if prevGroups > 0:
             convertedQuestions.append(self._endGroup(convertedHeaders))
 
