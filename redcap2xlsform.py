@@ -167,9 +167,9 @@ class ConstraintConverter:
 
 class RelevantConverter:
     """Holds expression from redcap file whether or not to show question."""
-    singleVariableRegex = r"\[(\w+)\]\s*([!<>=]{,2})\s*([\'\"]?)(\w+)[\'\"]?"
+    singleVariableRegex = r"\[(\w+)\]\s*([!<>=]{,2})\s*([\'\"]?)(\w*)[\'\"]?"
     singleVariableSubstituteRegex = r"${\1} \2 \3\4\3"
-    arrayRegex = r"\[(\w+)\((\w+)\)\]\s*([!<>=]{,2})\s*([\'\"]?)(\w+)[\'\"]?"
+    arrayRegex = r"\[(\w+)\((\w+)\)\]\s*([!<>=]{,2})\s*([\'\"]?)(\w*)[\'\"]?"
     arraySubstituteRegex = r"selected('\1','\2') \3 \4\5\4"
 
     def __init__(self, expression):
@@ -177,13 +177,23 @@ class RelevantConverter:
 
     def convertToXLS(self):
         """Converts axpression to XLSForm format and returns it."""
-        singleVariableConverted = re.sub(self.singleVariableRegex,
-                                         self.singleVariableSubstituteRegex,
-                                         self.expression)
-        singleAndArraysConverted = re.sub(self.arrayRegex,
-                                          self.arraySubstituteRegex,
-                                          singleVariableConverted)
-        return singleAndArraysConverted
+        singleVariablesConverted = re.sub(self.singleVariableRegex,
+                                          self.singleVariableSubstituteRegex,
+                                          self.expression)
+        arraysConverted = re.sub(self.arrayRegex,
+                                 self.arraySubstituteRegex,
+                                 singleVariablesConverted)
+        differentConverted = re.sub(r"<>",
+                                    r"!=",
+                                    arraysConverted)
+        orConverted = re.sub(r"(?i)or",
+                             r"or",
+                             differentConverted)
+        andConverted = re.sub(r"(?i)and",
+                              r"and",
+                              orConverted)
+        allConverted = andConverted
+        return allConverted
 
 
 class RequiredConverter:
@@ -465,6 +475,9 @@ class Converter:
         prevGroups = 0
 
         for i, row in enumerate(redcapQuestions):
+            if not row:
+                continue
+                
             if row[redcapHeaders.index('Section Header')]:
                 if prevGroups > 0:
                     convertedQuestions.append(self._endGroup(convertedHeaders))
