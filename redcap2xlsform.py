@@ -12,6 +12,11 @@ import xlwt
 import html2text
 
 
+class ColumnToCopyDoesNotExistException(Exception):
+    def __init__(self, column):
+        Exception.__init__(self, 'Column to copy "{}" does not exist in REDCap file!'.format(column))
+        self.column = column
+
 class NameConverter:
     """Holds variable name from redcap file."""
     def __init__(self, name):
@@ -406,7 +411,9 @@ class Converter:
                       XLSChoice('yes_no', 'no', 'No')]
     defaultHeaders = ['calculation', 'default', 'read_only']
 
-    def __init__(self, fileContent, mode):
+    def __init__(self, fileContent, mode, columnsToCopy):
+        self._checkColumnsToCopyExistInHeaders(columnsToCopy, fileContent)
+        self.columnsToCopy = columnsToCopy
         if mode == 'zip_xls':
             self.forms = self._separateForms(fileContent)
         else:
@@ -480,6 +487,7 @@ class Converter:
                 convertedHeaders.append(convertedHeader)
 
         convertedHeaders += self.defaultHeaders
+        convertedHeaders += self.columnsToCopy
         return convertedHeaders
 
     def _convertContent(self, redcapQuestions, redcapHeaders, convertedHeaders):
@@ -502,7 +510,8 @@ class Converter:
                 prevGroups += 1
 
             redcapRow = RowConverter(row, redcapHeaders,
-                                     convertedHeaders, listNumber)
+                                     convertedHeaders, listNumber,
+                                     self.columnsToCopy)
             questions, choices, listIncrement = redcapRow.convertToXLS()
 
             if len(choices) > 0:
@@ -514,7 +523,8 @@ class Converter:
                     listNumber = choiceSets.index(namesFromSet)
 
             redcapRow = RowConverter(row, redcapHeaders,
-                                     convertedHeaders, listNumber)
+                                     convertedHeaders, listNumber,
+                                     self.columnsToCopy)
             questions, choices, listIncrement = redcapRow.convertToXLS()
 
             if questions:
@@ -542,14 +552,20 @@ class Converter:
         groupEnd[headers.index('type')] = 'end group'
         return groupEnd
 
+    def _checkColumnsToCopyExistInHeaders(self, columns, fileContent):
+        for column in columns:
+            if not column in fileContent.headers:
+                raise ColumnToCopyDoesNotExistException(column)
+
 
 class RowConverter:
     """Holds information about single row from redcap file."""
-    def __init__(self, row, redcapHeaders, convertedHeaders, listNumber):
+    def __init__(self, row, redcapHeaders, convertedHeaders, listNumber, columnsToCopy):
         self.row = row
         self.redcapHeaders = redcapHeaders
         self.convertedHeaders = convertedHeaders
         self.listNumber = listNumber
+        self.columnsToCopy = columnsToCopy
         self._processHeaders()
         self._processValues()
 
@@ -575,6 +591,7 @@ class RowConverter:
         self.choicesOrCalculations = self._getRedcapVal('Choices, Calculations, OR Slider Labels')
         self.annotation = self._getRedcapVal('Field Annotation')
         self.hint = self._getRedcapVal('Field Note')
+        self.additional = {column: self._getRedcapVal(column) for column in self.columnsToCopy}
 
     def convertToXLS(self):
         """Converts row to XLSForm format and returns it."""
@@ -606,6 +623,7 @@ class RowConverter:
             self._convertCalculations()
             self._convertDefaults()
             self._convertReadOnly()
+            self._convertAdditional()
         else:
             self.convertedRow = ''
             self.convertedChoices = []
@@ -664,6 +682,10 @@ class RowConverter:
         redcapHint = HintsConverter(self.hint)
         convertedHint = redcapHint.convertToXLS()
         self._setXLSVal('hint', convertedHint)
+
+    def _convertAdditional(self):
+        for column in self.additional:
+            self._setXLSVal(column, self.additional.get(column))
 
     def _convertChoices(self):
         redcapChoices = ChoicesConverter(self.convertedType, self.choicesOrCalculations)
@@ -770,6 +792,9 @@ def parseArgs():
                            help="Mode of conversion:\n" +
                            "zip_xls - creates new file for each form name in file (default)\n" +
                            "single_xls - creates single file with all forms in it")
+    argParser.add_argument("-c", "--copycolumn",
+                           nargs='*',
+                           help="Select additional columns to copy to converted file")
     args = argParser.parse_args()
 
     filename = args.filename
@@ -784,17 +809,25 @@ def parseArgs():
         savefile = os.path.splitext(filename)[0]
         savefile += ext_from_mode[mode]
 
-    return filename, savefile, mode
+    columnsToCopy = []
+    if args.copycolumn:
+        columnsToCopy = args.copycolumn
+
+    return filename, savefile, mode, columnsToCopy
 
 
 if __name__ == "__main__":
-    filename, savefile, mode = parseArgs()
+    filename, savefile, mode, columnsToCopy = parseArgs()
 
     fileContent = readRedcapFile(filename)
 
     try:
-        convertedContent = Converter(fileContent, mode).convert()
+        convertedContent = Converter(fileContent, mode, columnsToCopy).convert()
         XLSWriter(savefile, mode).write(convertedContent)
+    except ColumnToCopyDoesNotExistException as e:
+        msg = e.args[0]
+        print(msg)
+        exit(1)
     except Exception as e:
         msg, line = e.args
         print(msg)
