@@ -274,7 +274,12 @@ class ChoicesConverter:
         return convertedChoice
 
     def _splitChoice(self, choice):
-        splittedChoice = choice.split(',')
+        if ',' in choice:
+            splittedChoice = choice.split(',')
+        elif ':' in choice:
+            splittedChoice = choice.split(':')
+        else:
+            raise Exception('Cannot read choice in this format: ' + choice)
         name = splittedChoice[0].strip()
         label = splittedChoice[1].strip()
         return name, label
@@ -458,10 +463,11 @@ class Converter:
 
                 for variable in variables:
                     if variable not in currentVariables:
-                        raise Exception("Cannot divide into multiple forms, " +
-                                        "condition/calculation refers to other " +
-                                        "forms in line {}:".format(i),
-                                        row)
+                        printable_row = ', '.join(row)
+                        msg = "Cannot divide into multiple forms, "\
+                              "condition/calculation refers to other "\
+                              "forms in line {line}:\n{row}"
+                        raise Exception(msg.format(line=i, row=printable_row))
                 currentVariables[row[nameIndex]] = True
                 currentForm.append(row)
 
@@ -829,7 +835,6 @@ if __name__ == "__main__":
         print(msg)
         exit(1)
     except Exception as e:
-        msg, line = e.args
+        msg = e.args[0]
         print(msg)
-        print(', '.join(line))
         exit(1)
