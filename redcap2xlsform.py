@@ -17,6 +17,12 @@ class ColumnToCopyDoesNotExistException(Exception):
         Exception.__init__(self, 'Column to copy "{}" does not exist in REDCap file!'.format(column))
         self.column = column
 
+
+class CrossFormsReferenceException(Exception):
+    def __init__(self, message):
+        Exception.__init__(self, message)
+
+
 class NameConverter:
     """Holds variable name from redcap file."""
     def __init__(self, name):
@@ -464,10 +470,11 @@ class Converter:
                 for variable in variables:
                     if variable not in currentVariables:
                         printable_row = ', '.join(row)
+                        printable_row = repr(printable_row)
                         msg = "Cannot divide into multiple forms, "\
                               "condition/calculation refers to other "\
                               "forms in line {line}:\n{row}"
-                        raise Exception(msg.format(line=i, row=printable_row))
+                        raise CrossFormsReferenceException(msg.format(line=i, row=printable_row))
                 currentVariables[row[nameIndex]] = True
                 currentForm.append(row)
 
@@ -830,11 +837,15 @@ if __name__ == "__main__":
     try:
         convertedContent = Converter(fileContent, mode, columnsToCopy).convert()
         XLSWriter(savefile, mode).write(convertedContent)
+    except CrossFormsReferenceException as e:
+        msg = e.args[0]
+        print(msg)
+        exit(1)
     except ColumnToCopyDoesNotExistException as e:
         msg = e.args[0]
         print(msg)
-        exit(1)
+        exit(2)
     except Exception as e:
         msg = e.args[0]
         print(msg)
-        exit(1)
+        exit(2)
